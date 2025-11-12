@@ -73,8 +73,8 @@ def get_browser_headers(accept_header: str = 'application/json') -> dict:
 def fetch_with_retry(
     url: str,
     params: Optional[dict] = None,
-    max_retries: int = 3,
-    timeout: int = 20,
+    max_retries: int = 5,
+    timeout: int = 30,
     accept_header: str = 'application/json',
     use_browser_headers: bool = True
 ) -> Optional[Union[dict, bytes]]:
@@ -114,7 +114,7 @@ def fetch_with_retry(
 
             # Add small random delay to avoid looking like a bot (except first attempt)
             if attempt > 0:
-                time.sleep(random.uniform(0.5, 1.5))
+                time.sleep(random.uniform(1.0, 2.5))
 
             response = session.get(
                 url,

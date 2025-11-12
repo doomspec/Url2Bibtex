@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Example usage of url2bibtex package."""
 
-from url2bibtex import Url2Bibtex, ACLAnthologyHandler
+from url2bibtex import Url2Bibtex, ACLAnthologyHandler, IEEEHandler
 from url2bibtex.handlers import (
     ArxivHandler, OpenReviewHandler, SemanticScholarHandler,
     GitHubHandler, DOIHandler, HTMLMetaHandler
@@ -14,12 +14,13 @@ def main():
     converter = Url2Bibtex()
 
     # Register specific handlers first
-
+    converter.register_handler(IEEEHandler())
     converter.register_handler(ACLAnthologyHandler())
     converter.register_handler(HTMLMetaHandler())
 
     # Example URLs
     test_urls = [
+        "https://ieeexplore.ieee.org/document/10897629",
         "https://dspace.mit.edu/handle/1721.1/127290",
         "https://www.nature.com/articles/s41586-020-2649-2",  # Nature article
         "https://aclanthology.org/2024.findings-emnlp.746"

@@ -9,6 +9,7 @@ import uvicorn
 
 from url2bibtex import Url2Bibtex
 from url2bibtex.handlers import (
+    IEEEHandler,
     ArxivHandler,
     OpenReviewHandler,
     SemanticScholarHandler,
@@ -38,10 +39,11 @@ app.add_middleware(
 # Initialize converter with all handlers
 converter = Url2Bibtex()
 converter.register_handler(ArxivHandler())
+converter.register_handler(DOIHandler())
 converter.register_handler(OpenReviewHandler())
 converter.register_handler(SemanticScholarHandler())
 converter.register_handler(GitHubHandler())
-converter.register_handler(DOIHandler())
+converter.register_handler(IEEEHandler())
 converter.register_handler(ACLAnthologyHandler())
 converter.register_handler(HTMLMetaHandler())  # Fallback handler last
 
