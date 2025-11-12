@@ -19,7 +19,7 @@ Example:
 
 from .converter import Url2Bibtex
 from .handler import Handler, HandlerRegistry
-from .handlers import ArxivHandler, OpenReviewHandler, SemanticScholarHandler, GitHubHandler, DOIHandler
+from .handlers import ArxivHandler, OpenReviewHandler, SemanticScholarHandler, GitHubHandler, DOIHandler, ACLAnthologyHandler, HTMLMetaHandler
 
 __version__ = "0.1.0"
-__all__ = ['Url2Bibtex', 'Handler', 'HandlerRegistry', 'ArxivHandler', 'OpenReviewHandler', 'SemanticScholarHandler', 'GitHubHandler', 'DOIHandler']
+__all__ = ['Url2Bibtex', 'Handler', 'HandlerRegistry', 'ArxivHandler', 'OpenReviewHandler', 'SemanticScholarHandler', 'GitHubHandler', 'DOIHandler', 'ACLAnthologyHandler', 'HTMLMetaHandler']

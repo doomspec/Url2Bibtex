@@ -10,6 +10,7 @@ Convert paper URLs to BibTeX entries with a pluggable handler system.
 - **Semantic Scholar Support**: Built-in handler for Semantic Scholar papers
 - **GitHub Support**: Built-in handler for GitHub repositories (with CITATION.cff support)
 - **DOI Support**: Built-in handler for DOI links (using DOI.org content negotiation)
+- **HTML Meta Tags Fallback**: Universal fallback handler that extracts from HTML meta tags (citation_*, DC.*, og:*)
 - **Simple API**: Clean and intuitive interface
 - **Type-Safe**: Full type hints support
 
@@ -23,17 +24,23 @@ pip install -e .
 
 ```python
 from url2bibtex import Url2Bibtex
-from url2bibtex.handlers import ArxivHandler, OpenReviewHandler, SemanticScholarHandler, GitHubHandler, DOIHandler
+from url2bibtex.handlers import (
+    ArxivHandler, OpenReviewHandler, SemanticScholarHandler,
+    GitHubHandler, DOIHandler, HTMLMetaHandler
+)
 
 # Create converter instance
 converter = Url2Bibtex()
 
-# Register handlers
+# Register specific handlers first
 converter.register_handler(ArxivHandler())
 converter.register_handler(OpenReviewHandler())
 converter.register_handler(SemanticScholarHandler())
 converter.register_handler(GitHubHandler())
 converter.register_handler(DOIHandler())
+
+# Register HTMLMetaHandler LAST as fallback for any other URLs
+converter.register_handler(HTMLMetaHandler())
 
 # Convert ArXiv URL to BibTeX
 arxiv_url = "https://arxiv.org/abs/2103.15348"
@@ -45,9 +52,9 @@ doi_url = "https://doi.org/10.1038/nature12373"
 bibtex = converter.convert(doi_url)
 print(bibtex)
 
-# Convert GitHub repository to BibTeX
-github_url = "https://github.com/pytorch/pytorch"
-bibtex = converter.convert(github_url)
+# The fallback handler works with any publisher that has meta tags
+publisher_url = "https://www.nature.com/articles/nature12373"
+bibtex = converter.convert(publisher_url)
 print(bibtex)
 ```
 
@@ -89,6 +96,26 @@ Currently supported:
 - **Semantic Scholar**: `https://www.semanticscholar.org/paper/{title-slug}/{paper-id}`
 - **GitHub**: `https://github.com/{owner}/{repo}` (supports CITATION.cff)
 - **DOI**: `https://doi.org/10.XXXX/XXXXX` (works with any DOI-registered publication)
+- **HTML Meta Tags**: Any website with citation meta tags (Nature, IEEE, ACM, Springer, etc.)
+
+## Universal Fallback Handler
+
+The `HTMLMetaHandler` is a universal fallback that extracts BibTeX information from HTML meta tags. It supports:
+
+- **citation_*** tags (Google Scholar format) - used by most academic publishers
+- **DC.*** tags (Dublin Core metadata)
+- **og:*** tags (Open Graph protocol)
+
+**Important**: Register `HTMLMetaHandler` LAST, after all specific handlers, as it matches any HTTP(S) URL.
+
+### Supported Publishers
+
+The fallback handler works with any website that includes citation metadata in HTML:
+- Nature, Science, Cell Press
+- IEEE Xplore, ACM Digital Library
+- Springer, Elsevier, Wiley
+- PLOS, MDPI, Frontiers
+- And many more...
 
 ## Architecture
 

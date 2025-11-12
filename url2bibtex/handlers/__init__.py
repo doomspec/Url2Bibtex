@@ -5,5 +5,7 @@ from .openreview_handler import OpenReviewHandler
 from .semanticscholar_handler import SemanticScholarHandler
 from .github_handler import GitHubHandler
 from .doi_handler import DOIHandler
+from .aclanthology_handler import ACLAnthologyHandler
+from .htmlmeta_handler import HTMLMetaHandler
 
-__all__ = ['ArxivHandler', 'OpenReviewHandler', 'SemanticScholarHandler', 'GitHubHandler', 'DOIHandler']
+__all__ = ['ArxivHandler', 'OpenReviewHandler', 'SemanticScholarHandler', 'GitHubHandler', 'DOIHandler', 'ACLAnthologyHandler', 'HTMLMetaHandler']

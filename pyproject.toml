@@ -24,6 +24,13 @@ dependencies = [
     "requests>=2.31.0",
 ]
 
+[project.optional-dependencies]
+server = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.0.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/yourusername/url2bibtex"
 Repository = "https://github.com/yourusername/url2bibtex"

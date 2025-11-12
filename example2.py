@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Example usage of url2bibtex package."""
 
-from url2bibtex import Url2Bibtex
+from url2bibtex import Url2Bibtex, ACLAnthologyHandler
 from url2bibtex.handlers import (
     ArxivHandler, OpenReviewHandler, SemanticScholarHandler,
     GitHubHandler, DOIHandler, HTMLMetaHandler
@@ -14,34 +14,15 @@ def main():
     converter = Url2Bibtex()
 
     # Register specific handlers first
-    converter.register_handler(ArxivHandler())
-    converter.register_handler(OpenReviewHandler())
-    converter.register_handler(SemanticScholarHandler())
-    converter.register_handler(GitHubHandler())
-    converter.register_handler(DOIHandler())
 
-    # Register HTMLMetaHandler LAST as fallback
+    converter.register_handler(ACLAnthologyHandler())
     converter.register_handler(HTMLMetaHandler())
 
     # Example URLs
     test_urls = [
-        # ArXiv URLs
-        "https://arxiv.org/abs/2103.15348",  # DeiT paper
-
-        # OpenReview URLs
-        "https://openreview.net/forum?id=GN921JHCRw",  # Example OpenReview paper
-
-        # Semantic Scholar URLs
-        "https://www.semanticscholar.org/paper/Epistemology-of-the-Closet-Sedgwick/f235ba0e7b4ca7f5fab23dfa05a8300596d0b857",
-
-        # DOI URLs
-        "https://doi.org/10.1038/nature12373",  # Nature paper
-
-        # GitHub URLs
-        "https://github.com/pytorch/pytorch",  # PyTorch repository
-
-        # HTML Meta Tags (fallback handler) - works with any publisher
-        "https://www.nature.com/articles/s41586-020-2649-2",  # Nature article (fallback)
+        "https://dspace.mit.edu/handle/1721.1/127290",
+        "https://www.nature.com/articles/s41586-020-2649-2",  # Nature article
+        "https://aclanthology.org/2024.findings-emnlp.746"
     ]
 
     print("=" * 80)

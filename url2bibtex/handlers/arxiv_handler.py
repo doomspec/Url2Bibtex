@@ -15,6 +15,7 @@ class ArxivHandler(Handler):
     - https://arxiv.org/abs/2103.15348
     - https://arxiv.org/pdf/2103.15348.pdf
     - http://arxiv.org/abs/2103.15348v1
+    - http://arxiv.org/html/2103.15348v1
     """
 
     # ArXiv API endpoint

@@ -1,0 +1,10 @@
+# Server dependencies for url2bibtex
+# Install with: pip install -r requirements-server.txt
+
+# Core dependencies
+requests>=2.31.0
+
+# Server dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
