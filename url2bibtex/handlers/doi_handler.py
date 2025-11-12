@@ -14,6 +14,8 @@ class DOIHandler(Handler):
     - https://doi.org/10.1000/xyz123
     - http://dx.doi.org/10.1000/xyz123
     - doi:10.1000/xyz123
+    - https://pubs.acs.org/doi/10.1021/acs.chemrestox.5c00033
+    - https://journals.sagepub.com/doi/full/10.1177/02783649241281508
 
     Uses DOI.org content negotiation to fetch BibTeX directly.
     """
@@ -22,8 +24,9 @@ class DOIHandler(Handler):
     DOI_API = "https://doi.org"
 
     # Pattern to match DOI URLs and extract the DOI
+    # Matches both doi.org URLs and publisher URLs with /doi/ in the path
     DOI_PATTERN = re.compile(
-        r"(?:(?:https?://)?(?:dx\.)?doi\.org/|doi:)\s*(10\.\S+/\S+)"
+        r"(?:(?:https?://)?(?:dx\.)?doi\.org/|doi:|/doi(?:/[a-z]+)*/)(10\.\d+/[^\s?#]+)"
     )
 
     def can_handle(self, url: str) -> bool:
