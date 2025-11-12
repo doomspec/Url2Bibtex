@@ -1,0 +1,26 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="MinimalLLM" />
+          <option value="phonopy" />
+          <option value="streamlit" />
+          <option value="nltk" />
+          <option value="rank_bm25" />
+          <option value="scipy" />
+          <option value="rapidfuzz" />
+          <option value="CoRE-MOF" />
+          <option value="CoREMOF-tools" />
+          <option value="rdkit" />
+          <option value="PACMAN-charge" />
+          <option value="pandas" />
+          <option value="json-repair" />
+          <option value="fastapi" />
+          <option value="uvicorn" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
