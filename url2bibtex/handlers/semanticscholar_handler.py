@@ -4,6 +4,7 @@ import re
 from typing import Optional
 from ..handler import Handler
 from ..utils import fetch_with_retry
+from .doi_handler import DOIHandler
 
 
 class SemanticScholarHandler(Handler):
@@ -83,6 +84,15 @@ class SemanticScholarHandler(Handler):
             external_ids = data.get('externalIds', {})
             doi = external_ids.get('DOI')
             arxiv_id = external_ids.get('ArXiv')
+
+            # If DOI is available, use DOI handler to generate BibTeX
+            if doi:
+                doi_handler = DOIHandler()
+                doi_url = f"https://doi.org/{doi}"
+                bibtex = doi_handler.extract_bibtex(doi_url)
+                if bibtex:
+                    return bibtex
+                # If DOI handler fails, fall through to manual generation below
 
             # Determine publication type
             pub_types = data.get('publicationTypes', [])
