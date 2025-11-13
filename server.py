@@ -16,7 +16,8 @@ from url2bibtex.handlers import (
     GitHubHandler,
     DOIHandler,
     ACLAnthologyHandler,
-    HTMLMetaHandler
+    HTMLMetaHandler,
+    BioRxivHandler
 )
 
 
@@ -39,6 +40,7 @@ app.add_middleware(
 # Initialize converter with all handlers
 converter = Url2Bibtex()
 converter.register_handler(ArxivHandler())
+converter.register_handler(BioRxivHandler())
 converter.register_handler(DOIHandler())
 converter.register_handler(OpenReviewHandler())
 converter.register_handler(SemanticScholarHandler())
@@ -114,6 +116,7 @@ async def list_handlers():
     """List all available handlers."""
     handlers = [
         HandlerInfo(name="ArxivHandler", description="ArXiv preprint papers"),
+        HandlerInfo(name="BioRxivHandler", description="bioRxiv preprint papers"),
         HandlerInfo(name="OpenReviewHandler", description="OpenReview conference submissions"),
         HandlerInfo(name="SemanticScholarHandler", description="Semantic Scholar academic papers"),
         HandlerInfo(name="GitHubHandler", description="GitHub repositories (CITATION.cff)"),
@@ -131,6 +134,7 @@ async def convert_url(request: ConvertRequest):
 
     Supports:
     - ArXiv (https://arxiv.org/abs/...)
+    - bioRxiv (https://www.biorxiv.org/content/10.1101/...)
     - OpenReview (https://openreview.net/forum?id=...)
     - Semantic Scholar (https://www.semanticscholar.org/paper/...)
     - GitHub (https://github.com/owner/repo)
