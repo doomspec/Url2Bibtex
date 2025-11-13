@@ -20,6 +20,7 @@ def main():
 
     # Example URLs
     test_urls = [
+        "https://www.sciencedirect.com/science/article/abs/pii/0893608089900208",
         "https://ieeexplore.ieee.org/document/10897629",
         "https://dspace.mit.edu/handle/1721.1/127290",
         "https://www.nature.com/articles/s41586-020-2649-2",  # Nature article

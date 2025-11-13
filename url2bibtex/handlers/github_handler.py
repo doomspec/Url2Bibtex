@@ -1,6 +1,7 @@
-"""GitHub URL handler for BibTeX conversion."""
+"""GitHub, GitLab, and Zenodo URL handler for BibTeX conversion."""
 
 import re
+import urllib.parse
 from typing import Optional
 import requests
 from ..handler import Handler
@@ -9,30 +10,53 @@ from ..utils import fetch_with_retry
 
 class GitHubHandler(Handler):
     """
-    Handler for GitHub repository URLs.
+    Handler for GitHub, GitLab, and Zenodo URLs.
 
     Supports URLs like:
-    - https://github.com/owner/repo
-    - https://github.com/owner/repo/tree/branch
+    - GitHub: https://github.com/owner/repo
+    - GitLab: https://gitlab.com/owner/repo
+    - Zenodo: https://zenodo.org/record/1234567 or https://doi.org/10.5281/zenodo.1234567
 
     Will attempt to:
-    1. Parse CITATION.cff file if available
-    2. Fall back to repository metadata from GitHub API
+    1. For GitHub/GitLab: Parse CITATION.cff file if available, fall back to API metadata
+    2. For Zenodo: Fetch metadata from Zenodo API using record ID
     """
 
-    # GitHub API endpoint
+    # API endpoints
     GITHUB_API = "https://api.github.com"
+    GITLAB_API = "https://gitlab.com/api/v4"
+    ZENODO_API = "https://zenodo.org/api"
 
-    # Pattern to match GitHub URLs and extract owner/repo
+    # Patterns to match URLs
     GITHUB_PATTERN = re.compile(
         r"github\.com/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_.-]+)"
     )
+    GITLAB_PATTERN = re.compile(
+        r"gitlab\.com/([a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_.-]+)*)"
+    )
+    ZENODO_PATTERN = re.compile(
+        r"(?:zenodo\.org/record[s]?/(\d+)|doi\.org/10\.5281/zenodo\.(\d+))"
+    )
 
     def can_handle(self, url: str) -> bool:
-        """Check if this is a GitHub URL."""
-        return self.GITHUB_PATTERN.search(url) is not None
+        """Check if this is a GitHub, GitLab, or Zenodo URL."""
+        return (self.GITHUB_PATTERN.search(url) is not None or
+                self.GITLAB_PATTERN.search(url) is not None or
+                self.ZENODO_PATTERN.search(url) is not None)
 
     def extract_bibtex(self, url: str) -> Optional[str]:
+        """Extract BibTeX entry from GitHub, GitLab, or Zenodo URL."""
+        # Check which platform this URL is from
+        if self.ZENODO_PATTERN.search(url):
+            return self._extract_zenodo(url)
+        elif self.GITLAB_PATTERN.search(url):
+            return self._extract_gitlab(url)
+        elif self.GITHUB_PATTERN.search(url):
+            return self._extract_github(url)
+
+        return None
+
+    def _extract_github(self, url: str) -> Optional[str]:
         """Extract BibTeX entry from GitHub URL."""
         # Extract owner and repo from URL
         match = self.GITHUB_PATTERN.search(url)
@@ -43,38 +67,45 @@ class GitHubHandler(Handler):
         repo = match.group(2)
 
         # Try to get CITATION.cff first
-        citation_bibtex = self._try_citation_cff(owner, repo)
+        citation_bibtex = self._try_citation_cff(owner, repo, url, platform="github")
         if citation_bibtex:
             return citation_bibtex
 
         # Fall back to repository metadata
-        return self._get_repo_metadata_bibtex(owner, repo)
+        return self._get_github_metadata_bibtex(owner, repo, url)
 
-    def _try_citation_cff(self, owner: str, repo: str) -> Optional[str]:
+    def _try_citation_cff(self, owner: str, repo: str, original_url: str, platform: str = "github") -> Optional[str]:
         """Try to fetch and parse CITATION.cff file."""
         try:
-            # Check if CITATION.cff exists
-            response = requests.get(
-                f"https://raw.githubusercontent.com/{owner}/{repo}/main/CITATION.cff",
-                timeout=10
-            )
-            if response.status_code == 404:
-                # Try master branch
-                response = requests.get(
-                    f"https://raw.githubusercontent.com/{owner}/{repo}/master/CITATION.cff",
-                    timeout=10
-                )
+            if platform == "github":
+                base_url = f"https://raw.githubusercontent.com/{owner}/{repo}"
+            elif platform == "gitlab":
+                # For GitLab, we need to URL-encode the project path
+                project_path = f"{owner}"
+                base_url = f"https://gitlab.com/{project_path}/-/raw"
+            else:
+                return None
 
-            if response.status_code == 200:
-                # Parse CITATION.cff (simplified parsing)
-                cff_content = response.text
-                return self._parse_citation_cff(cff_content, owner, repo)
+            # Check if CITATION.cff exists (try main and master branches)
+            for branch in ["main", "master"]:
+                try:
+                    response = requests.get(
+                        f"{base_url}/{branch}/CITATION.cff",
+                        timeout=10
+                    )
+                    if response.status_code == 200:
+                        # Parse CITATION.cff (simplified parsing)
+                        cff_content = response.text
+                        return self._parse_citation_cff(cff_content, owner, repo, original_url, platform)
+                except requests.RequestException:
+                    continue
+
         except requests.RequestException:
             pass
 
         return None
 
-    def _parse_citation_cff(self, cff_content: str, owner: str, repo: str) -> Optional[str]:
+    def _parse_citation_cff(self, cff_content: str, owner: str, repo: str, original_url: str, platform: str = "github") -> Optional[str]:
         """Parse CITATION.cff content to extract BibTeX information."""
         try:
             lines = cff_content.split('\n')
@@ -90,7 +121,7 @@ class GitHubHandler(Handler):
                         metadata[key] = value
 
             # Extract fields
-            title = metadata.get('title', f"{owner}/{repo}")
+            title = metadata.get('title', f"{owner}/{repo}" if repo else owner)
             authors = []
 
             # Try to extract authors (simplified)
@@ -135,17 +166,22 @@ class GitHubHandler(Handler):
                 year = year[:4]
 
             # Generate BibTeX key
-            first_author = authors[0]['family'] if authors and 'family' in authors[0] else owner
+            first_author = authors[0]['family'] if authors and 'family' in authors[0] else owner.split('/')[0]
             first_author_clean = re.sub(r'[^a-z0-9]', '', first_author.lower())
             bibtex_key = f"{first_author_clean}{year}"
 
-            # Construct BibTeX
+            # Use original URL and set note based on platform
+            if platform == "gitlab":
+                note = "GitLab repository"
+            else:
+                note = "GitHub repository"
+
             bibtex = f"""@software{{{bibtex_key},
   title = {{{title}}},
   author = {{{authors_str}}},
   year = {{{year}}},
-  url = {{https://github.com/{owner}/{repo}}},
-  note = {{GitHub repository}}
+  url = {{{original_url}}},
+  note = {{{note}}}
 }}"""
             return bibtex
 
@@ -153,7 +189,7 @@ class GitHubHandler(Handler):
             print(f"Error parsing CITATION.cff: {e}")
             return None
 
-    def _get_repo_metadata_bibtex(self, owner: str, repo: str) -> Optional[str]:
+    def _get_github_metadata_bibtex(self, owner: str, repo: str, original_url: str) -> Optional[str]:
         """Generate BibTeX from GitHub repository metadata."""
         # Fetch repository metadata
         data = fetch_with_retry(
@@ -191,14 +227,14 @@ class GitHubHandler(Handler):
             first_author_clean = re.sub(r'[^a-z0-9]', '', first_author.lower())
             bibtex_key = f"{first_author_clean}{year}"
 
-            # Construct BibTeX
+            # Construct BibTeX with original URL
             bibtex_parts = [f"@software{{{bibtex_key},"]
             bibtex_parts.append(f"  title = {{{name}}},")
             bibtex_parts.append(f"  author = {{{authors_str}}},")
             bibtex_parts.append(f"  year = {{{year}}},")
             if description:
                 bibtex_parts.append(f"  note = {{{description}}},")
-            bibtex_parts.append(f"  url = {{https://github.com/{owner}/{repo}}},")
+            bibtex_parts.append(f"  url = {{{original_url}}},")
             bibtex_parts.append(f"  publisher = {{GitHub}}")
             bibtex_parts.append("}")
 
@@ -206,4 +242,174 @@ class GitHubHandler(Handler):
 
         except (KeyError, ValueError) as e:
             print(f"Error parsing GitHub repository data: {e}")
+            return None
+
+    def _extract_gitlab(self, url: str) -> Optional[str]:
+        """Extract BibTeX entry from GitLab URL."""
+        # Extract project path from URL
+        match = self.GITLAB_PATTERN.search(url)
+        if not match:
+            return None
+
+        project_path = match.group(1)
+
+        # Try to get CITATION.cff first
+        # Split path for owner and repo (last part is repo name)
+        path_parts = project_path.split('/')
+        if len(path_parts) >= 2:
+            repo = path_parts[-1]
+            citation_bibtex = self._try_citation_cff(project_path, repo, url, platform="gitlab")
+            if citation_bibtex:
+                return citation_bibtex
+
+        # Fall back to repository metadata
+        return self._get_gitlab_metadata_bibtex(project_path, url)
+
+    def _get_gitlab_metadata_bibtex(self, project_path: str, original_url: str) -> Optional[str]:
+        """Generate BibTeX from GitLab repository metadata."""
+        # URL-encode the project path
+        encoded_path = urllib.parse.quote(project_path, safe='')
+
+        # Fetch repository metadata
+        data = fetch_with_retry(
+            f"{self.GITLAB_API}/projects/{encoded_path}",
+            accept_header="application/json"
+        )
+        if not data:
+            return None
+
+        try:
+            # Extract metadata
+            name = data.get('name', project_path.split('/')[-1])
+            description = data.get('description', '')
+            created_at = data.get('created_at', '')
+            year = created_at[:4] if created_at else 'Unknown'
+
+            # Get owner information
+            namespace = data.get('namespace', {})
+            owner_name = namespace.get('name', project_path.split('/')[0])
+
+            # Try to get contributors
+            contributors = fetch_with_retry(
+                f"{self.GITLAB_API}/projects/{encoded_path}/repository/contributors",
+                params={"per_page": 5},
+                accept_header="application/json"
+            )
+            if contributors:
+                author_list = [c.get('name', c.get('username', '')) for c in contributors[:5] if c.get('name') or c.get('username')]
+                authors_str = ' and '.join(author_list) if author_list else owner_name
+            else:
+                authors_str = owner_name
+
+            # Generate BibTeX key
+            first_author = authors_str.split(' and ')[0] if ' and ' in authors_str else authors_str
+            first_author_clean = re.sub(r'[^a-z0-9]', '', first_author.lower())
+            bibtex_key = f"{first_author_clean}{year}"
+
+            # Construct BibTeX with original URL
+            bibtex_parts = [f"@software{{{bibtex_key},"]
+            bibtex_parts.append(f"  title = {{{name}}},")
+            bibtex_parts.append(f"  author = {{{authors_str}}},")
+            bibtex_parts.append(f"  year = {{{year}}},")
+            if description:
+                bibtex_parts.append(f"  note = {{{description}}},")
+            bibtex_parts.append(f"  url = {{{original_url}}},")
+            bibtex_parts.append(f"  publisher = {{GitLab}}")
+            bibtex_parts.append("}")
+
+            return '\n'.join(bibtex_parts)
+
+        except (KeyError, ValueError) as e:
+            print(f"Error parsing GitLab repository data: {e}")
+            return None
+
+    def _extract_zenodo(self, url: str) -> Optional[str]:
+        """Extract BibTeX entry from Zenodo URL."""
+        # Extract record ID from URL
+        match = self.ZENODO_PATTERN.search(url)
+        if not match:
+            return None
+
+        # Get the record ID (either from group 1 or 2)
+        record_id = match.group(1) or match.group(2)
+
+        # Fetch record metadata from Zenodo API
+        data = fetch_with_retry(
+            f"{self.ZENODO_API}/records/{record_id}",
+            accept_header="application/json"
+        )
+        if not data:
+            return None
+
+        try:
+            # Extract metadata
+            metadata = data.get('metadata', {})
+
+            # Title
+            title = metadata.get('title', 'Unknown Title')
+
+            # Authors
+            creators = metadata.get('creators', [])
+            if creators:
+                author_list = []
+                for creator in creators:
+                    name = creator.get('name', '')
+                    if name:
+                        author_list.append(name)
+                authors_str = ' and '.join(author_list) if author_list else 'Unknown'
+            else:
+                authors_str = 'Unknown'
+
+            # Year
+            publication_date = metadata.get('publication_date', '')
+            year = publication_date[:4] if publication_date else 'Unknown'
+
+            # DOI
+            doi = data.get('doi', metadata.get('doi', ''))
+
+            # Resource type
+            resource_type = metadata.get('resource_type', {})
+            entry_type = resource_type.get('type', 'misc')
+
+            # Map Zenodo resource types to BibTeX entry types
+            type_mapping = {
+                'publication': 'article',
+                'poster': 'misc',
+                'presentation': 'misc',
+                'dataset': 'misc',
+                'image': 'misc',
+                'video': 'misc',
+                'software': 'software',
+                'lesson': 'misc',
+                'other': 'misc'
+            }
+            bibtex_type = type_mapping.get(entry_type.lower(), 'misc')
+
+            # Generate BibTeX key
+            first_author = authors_str.split(' and ')[0] if ' and ' in authors_str else authors_str
+            # Extract last name if format is "Last, First"
+            if ',' in first_author:
+                first_author = first_author.split(',')[0].strip()
+            first_author_clean = re.sub(r'[^a-z0-9]', '', first_author.lower())
+            bibtex_key = f"{first_author_clean}{year}"
+
+            # Construct BibTeX with original URL
+            bibtex_parts = [f"@{bibtex_type}{{{bibtex_key},"]
+            bibtex_parts.append(f"  title = {{{title}}},")
+            bibtex_parts.append(f"  author = {{{authors_str}}},")
+            bibtex_parts.append(f"  year = {{{year}}},")
+
+            # Include DOI if available
+            if doi:
+                bibtex_parts.append(f"  doi = {{{doi}}},")
+
+            # Always use the original URL
+            bibtex_parts.append(f"  url = {{{url}}},")
+            bibtex_parts.append(f"  publisher = {{Zenodo}}")
+            bibtex_parts.append("}")
+
+            return '\n'.join(bibtex_parts)
+
+        except (KeyError, ValueError) as e:
+            print(f"Error parsing Zenodo record data: {e}")
             return None
