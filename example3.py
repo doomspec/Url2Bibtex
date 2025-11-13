@@ -4,7 +4,7 @@
 from url2bibtex import Url2Bibtex, ACLAnthologyHandler, IEEEHandler
 from url2bibtex.handlers import (
     ArxivHandler, OpenReviewHandler, SemanticScholarHandler,
-    GitHubHandler, DOIHandler, HTMLMetaHandler
+    GitHubHandler, DOIHandler, HTMLMetaHandler, CellHandler
 )
 
 
@@ -14,6 +14,7 @@ def main():
     converter = Url2Bibtex()
 
     # Register specific handlers first
+    converter.register_handler(CellHandler())
     converter.register_handler(HTMLMetaHandler())
 
     # Example URLs

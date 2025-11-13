@@ -17,7 +17,9 @@ from url2bibtex.handlers import (
     DOIHandler,
     ACLAnthologyHandler,
     HTMLMetaHandler,
-    BioRxivHandler
+    BioRxivHandler,
+    PIIHandler,
+    CellHandler
 )
 
 
@@ -40,8 +42,10 @@ app.add_middleware(
 # Initialize converter with all handlers
 converter = Url2Bibtex()
 converter.register_handler(ArxivHandler())
-converter.register_handler(BioRxivHandler())
 converter.register_handler(DOIHandler())
+converter.register_handler(BioRxivHandler())
+converter.register_handler(PIIHandler())
+converter.register_handler(CellHandler())
 converter.register_handler(OpenReviewHandler())
 converter.register_handler(SemanticScholarHandler())
 converter.register_handler(GitHubHandler())

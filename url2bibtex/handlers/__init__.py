@@ -9,5 +9,7 @@ from .aclanthology_handler import ACLAnthologyHandler
 from .htmlmeta_handler import HTMLMetaHandler
 from .ieee_handler import IEEEHandler
 from .biorxiv_handler import BioRxivHandler
+from .pii_handler import PIIHandler
+from .cell_handler import CellHandler
 
-__all__ = ['ArxivHandler', 'OpenReviewHandler', 'SemanticScholarHandler', 'GitHubHandler', 'DOIHandler', 'ACLAnthologyHandler', 'HTMLMetaHandler', 'IEEEHandler', 'BioRxivHandler']
+__all__ = ['ArxivHandler', 'OpenReviewHandler', 'SemanticScholarHandler', 'GitHubHandler', 'DOIHandler', 'ACLAnthologyHandler', 'HTMLMetaHandler', 'IEEEHandler', 'BioRxivHandler', 'PIIHandler', 'CellHandler']
