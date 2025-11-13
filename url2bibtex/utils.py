@@ -52,8 +52,8 @@ def get_browser_headers(accept_header: str = 'application/json') -> dict:
         'User-Agent': random.choice(user_agents),
         'Accept': accept_header,
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',  # Do Not Track
+        #'Accept-Encoding': 'gzip, deflate, br',
+        #'DNT': '1',  # Do Not Track
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         'Sec-Fetch-Dest': 'document',
@@ -62,10 +62,6 @@ def get_browser_headers(accept_header: str = 'application/json') -> dict:
         'Sec-Fetch-User': '?1',
         'Cache-Control': 'max-age=0',
     }
-
-    # Add referer for HTML requests to look more natural
-    if 'text/html' in accept_header or accept_header == 'text/html':
-        headers['Referer'] = 'https://www.google.com/'
 
     return headers
 

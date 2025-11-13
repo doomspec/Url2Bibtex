@@ -2,6 +2,8 @@
 
 import re
 from typing import Optional
+from urllib.parse import unquote
+import requests
 from ..handler import Handler
 from ..utils import fetch_with_retry
 
@@ -27,6 +29,31 @@ class OpenReviewHandler(Handler):
         """Check if this is an OpenReview URL."""
         return self.OPENREVIEW_PATTERN.search(url) is not None
 
+    def _extract_bibtex_from_html(self, url: str) -> Optional[str]:
+        """Extract BibTeX from the HTML page by finding the data-bibtex attribute."""
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            html_content = response.text
+
+            # Find the data-bibtex attribute using regex
+            # Pattern: data-bibtex="...encoded bibtex..."
+            bibtex_pattern = re.compile(r'data-bibtex="([^"]+)"')
+            match = bibtex_pattern.search(html_content)
+
+            if match:
+                encoded_bibtex = match.group(1)
+                # URL decode the BibTeX data
+                decoded_bibtex = unquote(encoded_bibtex)
+                return decoded_bibtex
+            else:
+                print("Could not find data-bibtex attribute in HTML")
+                return None
+
+        except requests.RequestException as e:
+            print(f"Error fetching HTML page: {e}")
+            return None
+
     def extract_bibtex(self, url: str) -> Optional[str]:
         """Extract BibTeX entry from OpenReview URL."""
         # Extract paper ID from URL
@@ -36,16 +63,24 @@ class OpenReviewHandler(Handler):
 
         paper_id = match.group(1)
 
-        # Fetch metadata from OpenReview API with retry logic
+        # Construct the forum URL
+        forum_url = f"https://openreview.net/forum?id={paper_id}"
+
+        # Try HTML scraping first (more reliable)
+        print(f"Trying to extract BibTeX from HTML for paper ID: {paper_id}")
+        bibtex = self._extract_bibtex_from_html(forum_url)
+        if bibtex:
+            return bibtex
+
+        # Fallback to API if HTML scraping fails
+        print(f"HTML scraping failed, trying API for paper ID: {paper_id}")
         data = fetch_with_retry(self.OPENREVIEW_API, {"id": paper_id})
-        if not data:
+        if not data or not data.get('notes') or len(data['notes']) == 0:
+            print(f"API also failed or no paper found with ID: {paper_id}")
             return None
 
-        # Parse response
+        # Parse response from API
         try:
-            if not data.get('notes') or len(data['notes']) == 0:
-                print(f"No paper found with ID: {paper_id}")
-                return None
 
             note = data['notes'][0]
             content = note.get('content', {})
@@ -116,5 +151,5 @@ class OpenReviewHandler(Handler):
             return '\n'.join(bibtex_parts)
 
         except (KeyError, IndexError, ValueError) as e:
-            print(f"Error parsing OpenReview response: {e}")
+            print(f"Error parsing OpenReview API response: {e}")
             return None

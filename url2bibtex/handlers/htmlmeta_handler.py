@@ -3,8 +3,10 @@
 import re
 from typing import Optional
 from datetime import datetime
+from bs4 import BeautifulSoup
 from ..handler import Handler
 from ..utils import fetch_with_retry
+from .doi_handler import DOIHandler
 
 
 class HTMLMetaHandler(Handler):
@@ -14,6 +16,12 @@ class HTMLMetaHandler(Handler):
     This handler works with any website that includes citation metadata
     in HTML meta tags (citation_*, DC.*, og:*, etc.). It should be
     registered last as a fallback for URLs not handled by specific handlers.
+
+    Uses BeautifulSoup for robust HTML parsing.
+
+    If a citation_doi is found in the meta tags, it will attempt to fetch
+    the BibTeX directly from DOI.org for more accurate results, falling
+    back to meta tag extraction if that fails.
 
     Supported meta tag formats:
     - citation_* (Google Scholar format, used by many publishers)
@@ -47,11 +55,21 @@ class HTMLMetaHandler(Handler):
         if not metadata.get('title'):
             return None
 
-        # Generate BibTeX from metadata
+        # If citation_doi exists, try to use DOI handler for more accurate BibTeX
+        if metadata.get('doi'):
+            doi_handler = DOIHandler()
+            doi_url = f"https://doi.org/{metadata['doi']}"
+
+            # Try to fetch BibTeX from DOI.org
+            bibtex = doi_handler.extract_bibtex(doi_url)
+            if bibtex:
+                return bibtex
+
+        # Fallback: Generate BibTeX from metadata
         return self._generate_bibtex(metadata, url)
 
     def _parse_meta_tags(self, html: str) -> dict:
-        """Parse meta tags from HTML content."""
+        """Parse meta tags from HTML content using BeautifulSoup."""
         metadata = {
             'title': None,
             'authors': [],
@@ -67,55 +85,65 @@ class HTMLMetaHandler(Handler):
             'issn': None
         }
 
-        # Simple regex-based parsing (no external dependencies)
-        # Look for meta tags with name or property attributes
-        meta_pattern = re.compile(
-            r'<meta\s+(?:name|property)=["\']([^"\']+)["\']\s+content=["\']([^"\']+)["\']',
-            re.IGNORECASE
-        )
+        # Parse HTML with BeautifulSoup
+        soup = BeautifulSoup(html, 'html.parser')
 
-        for match in meta_pattern.finditer(html):
-            name = match.group(1).lower()
-            content = match.group(2).strip()
+        # Find all meta tags
+        meta_tags = soup.find_all('meta')
 
-            if not content:
-                continue
+        for tag in meta_tags:
+            # Get the name/property attribute
+            name = tag.get('name') or tag.get('property')
+            # Get the content attribute
+            content = tag.get('content')
 
-            # Citation tags (Google Scholar format)
-            if name == 'citation_title' or name == 'dc.title':
-                metadata['title'] = content
-            elif name == 'citation_author' or name == 'dc.creator' or name == 'author':
-                metadata['authors'].append(content)
-            elif name in ['citation_publication_date', 'citation_date', 'dc.date', 'article:published_time']:
-                # Extract year from date
-                year_match = re.search(r'(\d{4})', content)
-                if year_match:
-                    metadata['year'] = year_match.group(1)
-            elif name in ['citation_journal_title', 'citation_conference_title', 'dc.source']:
-                metadata['journal'] = content
-            elif name == 'citation_volume':
-                metadata['volume'] = content
-            elif name == 'citation_issue':
-                metadata['issue'] = content
-            elif name == 'citation_firstpage':
-                metadata['pages'] = content
-            elif name == 'citation_lastpage' and metadata['pages']:
-                metadata['pages'] += f"--{content}"
-            elif name in ['citation_doi', 'dc.identifier.doi']:
-                # Clean DOI
-                doi = content.replace('https://doi.org/', '').replace('http://doi.org/', '')
-                metadata['doi'] = doi
-            elif name in ['citation_abstract', 'dc.description', 'og:description']:
-                if not metadata['abstract']:  # Use first abstract found
-                    metadata['abstract'] = content
-            elif name in ['citation_publisher', 'dc.publisher']:
-                metadata['publisher'] = content
-            elif name == 'citation_isbn':
-                metadata['isbn'] = content
-            elif name == 'citation_issn':
-                metadata['issn'] = content
+            if name and content:
+                name = name.lower().strip()
+                content = content.strip()
+
+                if content:
+                    self._extract_metadata(name, content, metadata)
 
         return metadata
+
+    def _extract_metadata(self, name: str, content: str, metadata: dict) -> None:
+        """Extract metadata from a single meta tag."""
+        if not content:
+            return
+
+        # Citation tags (Google Scholar format)
+        if name == 'citation_title' or name == 'dc.title':
+            metadata['title'] = content
+        elif name == 'citation_author' or name == 'dc.creator' or name == 'author':
+            metadata['authors'].append(content)
+        elif name in ['citation_publication_date', 'citation_date', 'dc.date', 'article:published_time']:
+            # Extract year from date
+            year_match = re.search(r'(\d{4})', content)
+            if year_match:
+                metadata['year'] = year_match.group(1)
+        elif name in ['citation_journal_title', 'citation_conference_title', 'dc.source']:
+            metadata['journal'] = content
+        elif name == 'citation_volume':
+            metadata['volume'] = content
+        elif name == 'citation_issue':
+            metadata['issue'] = content
+        elif name == 'citation_firstpage':
+            metadata['pages'] = content
+        elif name == 'citation_lastpage' and metadata['pages']:
+            metadata['pages'] += f"--{content}"
+        elif name in ['citation_doi', 'dc.identifier.doi']:
+            # Clean DOI
+            doi = content.replace('https://doi.org/', '').replace('http://doi.org/', '')
+            metadata['doi'] = doi
+        elif name in ['citation_abstract', 'dc.description', 'og:description']:
+            if not metadata['abstract']:  # Use first abstract found
+                metadata['abstract'] = content
+        elif name in ['citation_publisher', 'dc.publisher']:
+            metadata['publisher'] = content
+        elif name == 'citation_isbn':
+            metadata['isbn'] = content
+        elif name == 'citation_issn':
+            metadata['issn'] = content
 
     def _generate_bibtex(self, metadata: dict, url: str) -> Optional[str]:
         """Generate BibTeX entry from metadata."""
