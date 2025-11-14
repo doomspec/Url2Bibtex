@@ -176,9 +176,9 @@ class GitHubHandler(Handler):
             else:
                 note = "GitHub repository"
 
+            # author field is removed
             bibtex = f"""@software{{{bibtex_key},
   title = {{{title}}},
-  author = {{{authors_str}}},
   year = {{{year}}},
   url = {{{original_url}}},
   note = {{{note}}}
@@ -309,7 +309,7 @@ class GitHubHandler(Handler):
             # Construct BibTeX with original URL
             bibtex_parts = [f"@software{{{bibtex_key},"]
             bibtex_parts.append(f"  title = {{{name}}},")
-            bibtex_parts.append(f"  author = {{{authors_str}}},")
+            #bibtex_parts.append(f"  author = {{{authors_str}}},")
             bibtex_parts.append(f"  year = {{{year}}},")
             if description:
                 bibtex_parts.append(f"  note = {{{description}}},")
