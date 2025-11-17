@@ -144,9 +144,12 @@ class SemanticScholarHandler(Handler):
             if arxiv_id:
                 bibtex_parts.append(f"  eprint = {{{arxiv_id}}},")
                 bibtex_parts.append(f"  archivePrefix = {{arXiv}},")
-
-            # Add Semantic Scholar URL
-            bibtex_parts.append(f"  url = {{https://www.semanticscholar.org/paper/{paper_id}}}")
+            if not doi:
+                # Add Semantic Scholar URL
+                bibtex_parts.append(f"  url = {{https://www.semanticscholar.org/paper/{paper_id}}}")
+            else:
+                # Add DOI URL
+                bibtex_parts.append(f"  url = {{https://doi.org/{doi}}}")
 
             bibtex_parts.append("}")
 
