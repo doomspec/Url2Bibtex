@@ -69,7 +69,7 @@ def get_browser_headers(accept_header: str = 'application/json') -> dict:
 def fetch_with_retry(
     url: str,
     params: Optional[dict] = None,
-    max_retries: int = 5,
+    max_retries: int = 1,
     timeout: int = 30,
     accept_header: str = 'application/json',
     use_browser_headers: bool = True

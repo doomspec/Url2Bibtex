@@ -6,7 +6,7 @@ authors = [
     {name = "Your Name", email = "your.email@example.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["bibtex", "academic", "papers", "citation", "arxiv"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -14,7 +14,6 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -31,11 +30,17 @@ server = [
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.0.0",
 ]
+mcp = [
+    "mcp>=0.1.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/yourusername/url2bibtex"
 Repository = "https://github.com/yourusername/url2bibtex"
 Issues = "https://github.com/yourusername/url2bibtex/issues"
+
+[project.scripts]
+url2bibtex-server = "url2bibtex.server:run"
 
 [build-system]
 requires = ["hatchling"]

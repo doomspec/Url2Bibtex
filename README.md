@@ -16,8 +16,28 @@ Convert paper URLs to BibTeX entries with a pluggable handler system.
 
 ## Installation
 
+### Using pip
+
 ```bash
 pip install -e .
+```
+
+To use the MCP server:
+
+```bash
+pip install -e ".[mcp]"
+```
+
+### Using uv (Recommended)
+
+[uv](https://github.com/astral-sh/uv) is a fast Python package installer and runner:
+
+```bash
+# Install dependencies
+uv sync
+
+# Install with MCP support
+uv sync --extra mcp
 ```
 
 ## Quick Start
@@ -57,6 +77,125 @@ publisher_url = "https://www.nature.com/articles/nature12373"
 bibtex = converter.convert(publisher_url)
 print(bibtex)
 ```
+
+## MCP Server
+
+url2bibtex includes an MCP (Model Context Protocol) server that allows Claude and other AI assistants to convert URLs to BibTeX entries.
+
+**🚀 [Quick Start Guide](QUICKSTART_MCP.md)** | **📖 [Detailed Setup](MCP_SETUP.md)**
+
+### Running the Server
+
+After installing with MCP dependencies:
+
+#### Using uv (Recommended)
+
+```bash
+uv run url2bibtex-server
+```
+
+Or from the project directory:
+
+```bash
+cd /path/to/Url2Bibtex
+uv run url2bibtex-server
+```
+
+#### Using Python directly
+
+```bash
+url2bibtex-server
+```
+
+Or:
+
+```bash
+python -m url2bibtex.server
+```
+
+### Configuration
+
+#### Automatic Installation (Easiest)
+
+Install the configuration automatically:
+
+```bash
+python install_mcp_config.py
+```
+
+This will find your Claude config file and add the url2bibtex server automatically.
+
+#### Generate Config for Manual Setup
+
+Generate the config with the correct path:
+
+```bash
+python generate_mcp_config.py
+```
+
+Then copy the output to your Claude MCP settings file (`~/.claude/claude_desktop_config.json`).
+
+#### Manual Configuration
+
+Add to your Claude Code MCP settings file:
+
+**Using uv (Recommended):**
+
+```json
+{
+  "mcpServers": {
+    "url2bibtex": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/Url2Bibtex",
+        "run",
+        "url2bibtex-server"
+      ]
+    }
+  }
+}
+```
+
+Replace `/path/to/Url2Bibtex` with the actual path to your url2bibtex project directory.
+
+#### Using installed package
+
+If you've installed url2bibtex globally:
+
+```json
+{
+  "mcpServers": {
+    "url2bibtex": {
+      "command": "url2bibtex-server"
+    }
+  }
+}
+```
+
+#### Using Python directly
+
+```json
+{
+  "mcpServers": {
+    "url2bibtex": {
+      "command": "python",
+      "args": ["-m", "url2bibtex.server"]
+    }
+  }
+}
+```
+
+### Using the MCP Tool
+
+Once configured, Claude can convert URLs to BibTeX entries:
+
+```
+User: Convert this URL to BibTeX: https://arxiv.org/abs/2103.15348
+Claude: [Uses the convert_url_to_bibtex tool to get the BibTeX entry]
+```
+
+The MCP server includes a pre-configured converter with all built-in handlers registered in the optimal order.
 
 ## Creating Custom Handlers
 

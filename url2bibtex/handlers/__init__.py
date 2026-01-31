@@ -11,5 +11,6 @@ from .ieee_handler import IEEEHandler
 from .biorxiv_handler import BioRxivHandler
 from .pii_handler import PIIHandler
 from .cell_handler import CellHandler
+from .url_param_handler import UrlParamHandler
 
-__all__ = ['ArxivHandler', 'OpenReviewHandler', 'SemanticScholarHandler', 'GitHubHandler', 'DOIHandler', 'ACLAnthologyHandler', 'HTMLMetaHandler', 'IEEEHandler', 'BioRxivHandler', 'PIIHandler', 'CellHandler']
+__all__ = ['ArxivHandler', 'OpenReviewHandler', 'SemanticScholarHandler', 'GitHubHandler', 'DOIHandler', 'ACLAnthologyHandler', 'HTMLMetaHandler', 'IEEEHandler', 'BioRxivHandler', 'PIIHandler', 'CellHandler', 'UrlParamHandler']

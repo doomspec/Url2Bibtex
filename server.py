@@ -7,21 +7,7 @@ from pydantic import BaseModel, HttpUrl, Field
 from typing import Optional, List
 import uvicorn
 
-from url2bibtex import Url2Bibtex
-from url2bibtex.handlers import (
-    IEEEHandler,
-    ArxivHandler,
-    OpenReviewHandler,
-    SemanticScholarHandler,
-    GitHubHandler,
-    DOIHandler,
-    ACLAnthologyHandler,
-    HTMLMetaHandler,
-    BioRxivHandler,
-    PIIHandler,
-    CellHandler
-)
-
+from url2bibtex import default_converter
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -39,19 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize converter with all handlers
-converter = Url2Bibtex()
-converter.register_handler(ArxivHandler())
-converter.register_handler(DOIHandler())
-converter.register_handler(BioRxivHandler())
-converter.register_handler(PIIHandler())
-converter.register_handler(CellHandler())
-converter.register_handler(OpenReviewHandler())
-converter.register_handler(SemanticScholarHandler())
-converter.register_handler(GitHubHandler())
-converter.register_handler(IEEEHandler())
-converter.register_handler(ACLAnthologyHandler())
-converter.register_handler(HTMLMetaHandler())  # Fallback handler last
+
 
 
 # Request/Response models
@@ -149,7 +123,7 @@ async def convert_url(request: ConvertRequest):
     url = request.url
 
     # Check if URL can be converted
-    if not converter.can_convert(url):
+    if not default_converter.can_convert(url):
         raise HTTPException(
             status_code=400,
             detail=f"No handler available for URL: {url}"
@@ -157,7 +131,7 @@ async def convert_url(request: ConvertRequest):
 
     try:
         # Convert URL to BibTeX
-        bibtex = converter.convert(url)
+        bibtex = default_converter.convert(url)
 
         if not bibtex:
             raise HTTPException(
